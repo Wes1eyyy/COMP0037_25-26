@@ -27,6 +27,9 @@ if __name__ == '__main__':
     # Create the policy iterator
     policy_solver = PolicyIterator(airport_environment)
 
+    # Fix convergence: discount future rewards so the series converges
+    policy_solver.set_gamma(0.99)
+
     # Set up initial state
     policy_solver.initialize()
     
