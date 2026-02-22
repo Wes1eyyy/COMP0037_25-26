@@ -12,40 +12,35 @@ from generalized_policy_iteration.value_function_drawer import \
     ValueFunctionDrawer
 from p2.low_level_environment import LowLevelEnvironment
 
-if __name__ == '__main__':
-    
-    # Get the map for the scenario
-    #airport_map, drawer_height = three_row_scenario()
-    airport_map, drawer_height = full_scenario()
-    
-    # Set up the environment for the robot driving around
+def run_policy_evaluation(airport_map, drawer_height, gamma, tag, num_iters=1000):
+    """Run policy evaluation with the given gamma and save a PDF screenshot."""
     airport_environment = LowLevelEnvironment(airport_map)
-    
-    # Configure the process model
     airport_environment.set_nominal_direction_probability(1)
 
-    # Create the policy iterator
     policy_solver = PolicyIterator(airport_environment)
-
-    # Fix convergence: discount future rewards so the series converges
-    policy_solver.set_gamma(0.99)
-
-    # Set up initial state
+    policy_solver.set_gamma(gamma)
     policy_solver.initialize()
-    
-    # We only do 10 policy evaluation steps per iteration
     policy_solver.set_max_policy_evaluation_steps_per_iteration(10)
-            
-    # Evaluate the policy. In this part of the question, only this is supported.
+
     V = policy_solver.evaluate_policy()
-    
     value_function_drawer = ValueFunctionDrawer(V, drawer_height)
 
-    # Run the evaluator repeatedly. This lets you see how the value changes
-    # over time.    
-    for steps in range(1000):
+    for steps in range(num_iters):
         policy_solver.evaluate_policy()
         value_function_drawer.update()
-     
-    # Wait for a final key press
-    value_function_drawer.wait_for_key_press()
+
+    value_function_drawer.save_screenshot(f"q3b_value_{tag}.pdf")
+    print(f"Saved q3b_value_{tag}.pdf")
+    return value_function_drawer
+
+if __name__ == '__main__':
+
+    airport_map, drawer_height = full_scenario()
+
+    # gamma = 1: non-convergent (50 iters is enough to show divergence)
+    run_policy_evaluation(airport_map, drawer_height, gamma=1.0, tag="gamma1", num_iters=50)
+
+    # gamma = 0.99: convergent
+    drawer = run_policy_evaluation(airport_map, drawer_height, gamma=0.99, tag="gamma099")
+
+    drawer.wait_for_key_press()

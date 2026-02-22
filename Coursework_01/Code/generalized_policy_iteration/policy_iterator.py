@@ -76,6 +76,8 @@ class PolicyIterator(DynamicProgrammingBase):
         if self._value_drawer is not None:
             self._value_drawer.update()
 
+        print(f'Policy iteration converged in {policy_iteration_step} steps (stable={policy_stable})')
+
         # Return the value function and policy of the solution
         return self._v, self._pi
 
