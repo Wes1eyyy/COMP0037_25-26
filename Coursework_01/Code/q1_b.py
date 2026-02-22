@@ -31,7 +31,7 @@ def run_planner_on_all_bins(airport_map, planner_type, show_graphics=True):
                         plan.path_travel_cost, plan.number_of_cells_visited))
 
         if show_graphics:
-            screenshot_name = f'bin_{bin_number:02d}.pdf'
+            screenshot_name = f'bin_{bin_number:02d}_{str(planner_type)}.pdf'
             env.search_grid_drawer().save_screenshot(screenshot_name)
 
     return results
