@@ -205,15 +205,24 @@ class AirportMap(CellGrid):
         self._use_cell_type_traversability_costs = use_cell_type_traversability_costs
     
     def compute_transition_cost(self, last_coords, current_coords):
-        
+
         # Compute the basic Euclidean cost
         dX = current_coords[0] - last_coords[0]
         dY = current_coords[1] - last_coords[1]
         L = math.sqrt(dX * dX + dY * dY)
-        
+
         # Q1f:
         # Modify the transition costs depending upon the
         # semantic label of the map cell
+        if self._use_cell_type_traversability_costs:
+            cell_type = self._map[current_coords[0]][current_coords[1]].cell_type()
+            if cell_type == MapCellType.SECRET_DOOR:
+                alpha = 5
+            elif cell_type == MapCellType.CUSTOMS_AREA:
+                alpha = 100
+            else:
+                alpha = 1
+            L = alpha * L
 
         return L
         
