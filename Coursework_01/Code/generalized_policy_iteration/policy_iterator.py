@@ -157,6 +157,42 @@ class PolicyIterator(DynamicProgrammingBase):
 
         policy_stable = True
 
+        # Sweep over all states in the grid
+        for x in range(map.width()):
+            for y in range(map.height()):
+
+                # Skip obstruction and terminal cells
+                if map.cell(x, y).is_obstruction() or map.cell(x, y).is_terminal():
+                    continue
+
+                # Store the current action under the old policy
+                old_action = self._pi.action(x, y)
+
+                # Find the action that maximises the action-value function q(s, a)
+                best_action = old_action
+                best_q = float('-inf')
+
+                # Iterate over all 8 directional actions (0..7)
+                for a in range(8):
+                    s_prime, r, p = environment.next_state_and_reward_distribution((x, y), a)
+
+                    # Compute q(s, a) = sum over outcomes of p * (r + gamma * V(s'))
+                    q = 0
+                    for t in range(len(p)):
+                        sc = s_prime[t].coords()
+                        q += p[t] * (r[t] + self._gamma * self._v.value(sc[0], sc[1]))
+
+                    if q > best_q:
+                        best_q = q
+                        best_action = a
+
+                # Update the policy with the greedy action
+                self._pi.set_action(x, y, best_action)
+
+                # If the action changed, the policy is not yet stable
+                if best_action != old_action:
+                    policy_stable = False
+
         # Return true if the policy is stable (=isn't changing)     
         return policy_stable
                     
