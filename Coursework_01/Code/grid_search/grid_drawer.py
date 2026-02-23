@@ -1,6 +1,5 @@
 import locale
 
-import ghostscript
 import pyscreenshot as ImageGrab
 
 from .graphics import *
@@ -70,10 +69,21 @@ class GridDrawer(object):
                 "-f",  "tmp.ps"
                 ]
 
-            encoding = locale.getpreferredencoding()
-            args = [a.encode(encoding) for a in args]
-
-            ghostscript.Ghostscript(*args)
+            # Try the Python ghostscript module first; fall back to
+            # calling the Ghostscript executable directly (works when
+            # the DLL is not in the Windows registry but gswin64c is
+            # on PATH, e.g. inside a conda environment).
+            try:
+                import ghostscript
+                encoding = locale.getpreferredencoding()
+                args_bytes = [a.encode(encoding) for a in args]
+                ghostscript.Ghostscript(*args_bytes)
+            except (RuntimeError, OSError):
+                import subprocess, shutil
+                gs_exe = shutil.which("gswin64c") or shutil.which("gswin32c") or "gs"
+                cmd = [gs_exe, "-dNOPAUSE", "-dBATCH", "-dSAFER", "-dEPSCrop",
+                       "-sDEVICE=pdfwrite", "-sOutputFile=" + filename, "-f", "tmp.ps"]
+                subprocess.run(cmd, check=True)
 
             # Delete the temporary file
             os.remove("tmp.ps")
