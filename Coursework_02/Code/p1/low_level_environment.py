@@ -159,6 +159,7 @@ class LowLevelEnvironment(Env):
         
         # Get the current cell
         current_cell = self._airport_map.cell(s[0], s[1])
+        p_slip = current_cell.p_slip()
         
         # Return values
         s_prime = []
@@ -191,6 +192,11 @@ class LowLevelEnvironment(Env):
             return s_prime, r, p
         
         # All other cases are moving in a given direction
+        if p_slip > 0:
+            # On slippery cells the robot can fail to move and incur a unit penalty.
+            s_prime.append(current_cell)
+            r.append(-1)
+            p.append(p_slip)
         
         # If the nominal direction is a, we get samples for moving in the directions
         # (a-1, a, a+1).        
@@ -198,9 +204,9 @@ class LowLevelEnvironment(Env):
             
             # What's the probability of this outcome?
             if i == 0:
-                pr = self._p
+                pr = (1 - p_slip) * self._p
             else:
-                pr = self._q
+                pr = (1 - p_slip) * self._q
                 
             # Handle index wrapping
             idx = a + i
