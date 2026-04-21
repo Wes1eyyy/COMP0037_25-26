@@ -19,6 +19,7 @@ from td.sarsa import SARSA
 from td.q_learner import QLearner
 from p1.low_level_environment import LowLevelEnvironment
 from p1.low_level_actions import LowLevelActionType
+from common.airport_map import MapCellType
 
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -43,6 +44,64 @@ ACTION_DELTAS = {
     LowLevelActionType.MOVE_DOWN: (0, -1),
     LowLevelActionType.MOVE_DOWN_RIGHT: (1, -1),
 }
+
+
+class SlippyLowLevelEnvironment(LowLevelEnvironment):
+
+    def next_state_and_reward_distribution(self, s, a, print_cell=False):
+
+        current_cell = self._airport_map.cell(s[0], s[1])
+        p_slip = current_cell.p_slip()
+
+        s_prime = []
+        r = []
+        p = []
+
+        if a == LowLevelActionType.TERMINATE:
+            if current_cell.is_terminal() is True:
+                return [None], [current_cell.params()], [1]
+
+        if a == LowLevelActionType.NONE:
+            return [current_cell], [-1], [1]
+
+        if p_slip > 0:
+            s_prime.append(current_cell)
+            r.append(-1)
+            p.append(p_slip)
+
+        for i in range(-1, 2):
+            if i == 0:
+                pr = (1 - p_slip) * self._p
+            else:
+                pr = (1 - p_slip) * self._q
+
+            idx = a + i
+            if idx > 7:
+                idx = -3
+
+            delta = self._driving_deltas[idx]
+            new_x = s[0] + delta[0]
+            new_y = s[1] + delta[1]
+
+            if (new_x < 0) or (new_x >= self._airport_map.width()) \
+                or (new_y < 0) or (new_y >= self._airport_map.height()):
+                s_prime.append(current_cell)
+                r.append(-1)
+            else:
+                new_cell = self._airport_map.cell(new_x, new_y)
+                if new_cell.is_obstruction():
+                    s_prime.append(current_cell)
+                    if new_cell.cell_type() is MapCellType.BAGGAGE_CLAIM:
+                        r.append(-10)
+                    else:
+                        r.append(-1)
+                else:
+                    s_prime.append(new_cell)
+                    r.append(-self._airport_map.compute_transition_cost(current_cell.coords(), new_cell.coords()))
+
+            p.append(pr)
+
+        return s_prime, r, p
 
 
 def _extract_value_grid(value_function, airport_map):
@@ -140,7 +199,7 @@ def train_controller(learner_cls, value_pdf_name, policy_pdf_name):
     np.random.seed(RANDOM_SEED)
 
     airport_map, _ = slippy_corridor()
-    env = LowLevelEnvironment(airport_map)
+    env = SlippyLowLevelEnvironment(airport_map)
     pi = env.initial_policy()
     pi.set_epsilon(1)
 
